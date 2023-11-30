@@ -5,7 +5,7 @@
 using namespace std;
 
 int s[20][20];
-int m, n, p, k, mod;
+int m, n, p, k;
 
 vector<int> locatii;
 
