@@ -5,9 +5,24 @@
 using namespace std;
 
 int s[20][20];
-int m, n, p, k;
+int m, n, p, k, mod;
 
 vector<int> locatii;
+
+
+int countVecini(int i, int j) {
+	int nr_vecini = 0;
+
+	for (int l = -1; l < 2; l++) {  //verific vecinii
+		for (int c = -1; c < 2; c++) {
+			if (l == 0 and c == 0) c++; //daca ajung la elementu pe care il compar gen identitate
+			if (s[i + l][j + c] == 1) nr_vecini += 1; //daca vecinul e viu il numar
+		}
+	}
+
+	return nr_vecini;
+}
+
 
 void evolutie() {
 	
@@ -15,27 +30,20 @@ void evolutie() {
 	for (int i = 1; i <= m; i++) {
 		for (int j = 1; j <= n; j++) { //verific fiecare element din matricea neextinsa
 			if (s[i][j] == 0) { //verificam celulele moarte
-				int nr_vecini = 0;
-				
-
-				for (int l = -1; l < 2; l++) {  //verific vecinii
-					for (int c = -1; c < 2; c++) {
-						if (l == 0 and c == 0 ) c++; //daca ajung la elementu pe care il compar gen identitate
-						if (s[i + l][j + c] == 1) nr_vecini += 1; //daca vecinul e viu il numar
-					}
-				}
-				if (nr_vecini == 3) { // conditie creare
+				if (countVecini(i, j) == 3) { // conditie creare
 				
 					locatii.push_back(i); locatii.push_back(j); locatii.push_back(1); // salvez locatia celulelor de inviat
 				
 				}
-
-				
-				
-
 			}
-
-			
+			else {
+				if (countVecini(i, j) < 2) {
+					locatii.push_back(i); locatii.push_back(j); locatii.push_back(0);
+				}
+				else if (countVecini(i, j) > 3) {
+					locatii.push_back(i); locatii.push_back(j); locatii.push_back(0);
+				}
+			}
 		}
 	}
 
@@ -49,7 +57,7 @@ void evolutie() {
 
 int main()
 {
-	cin >> m >> n >> p >> k;
+	cin >> m >> n >> p;
 
 
 	for (int i = 0; i < p; i++) {
@@ -58,49 +66,28 @@ int main()
 		s[x+1][y+1] = 1;
 	}
 
-	//Matricea extinsa
-	/*
-	for (int i = 0; i < m+2; i++) {
-		for (int j = 0; j < n+2; j++) {
-			cout << s[i][j] << " ";
-		}
-		cout << endl;
-	}*/
-	
-	
+	cin >> k;
 
-	cout << "Gen 0" << endl;
-	for (int i = 1; i <= m; i++) {
-		for (int j = 1; j <= n; j++) {
-			cout << s[i][j] << " ";
+	//0x00
+	for (int c = 0; c < k; c++) {
+		bool zero = true;
+		printf("Gen %d\n", c);
+		for (int i = 1; i <= m; i++) { // afisez matricea Sk
+			for (int j = 1; j <= n; j++) {
+				cout << s[i][j] << " ";
+				if (s[i][j] == 1) {
+					zero = false;
+				}
+			}
+			cout << endl;
 		}
-		cout << endl;
+
+		if (zero) { // daca e matricea nula nu mai continua
+			break;
+		}
+		evolutie();
 	}
 
-	evolutie();
-
-	cout << "Gen 1" << endl;
-	for (int i = 1; i <= m; i++) {
-		for (int j = 1; j <= n; j++) {
-			cout << s[i][j] << " ";
-		}
-		cout << endl;
-	}
 		
-
 	return 0;
 }
-
-/*
-5 5 3 1
-0 1
-1 0
-1 1
-
-
-5 5 4 1
-0 4
-1 2
-2 1
-2 3
-*/
