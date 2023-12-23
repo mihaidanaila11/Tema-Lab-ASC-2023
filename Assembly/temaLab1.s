@@ -15,7 +15,7 @@ i: .space 4
 j: .space 4
 
 string_citire: .asciz "%ld"
-string_generatii: .asciz "Gen %ld\n"
+string_afisare: .asciz "%ld "
 newline: .asciz "\n"
 
 s: .space 1600
@@ -50,7 +50,7 @@ saux: .space 1600
 		addl j, %eax
 		
 		pushl (%edi, %eax, 4)
-		pushl $string_citire
+		pushl $string_afisare
 		call printf
 		popl %ebx
 		popl %ebx
@@ -406,4 +406,3 @@ exit:
 mov $1, %eax
 xorl %ebx, %ebx
 int $0x80
-
