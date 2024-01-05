@@ -14,15 +14,19 @@ j: .space 4
 
 string_citire: .asciz "%ld"
 string_afisare: .asciz "%ld "
+string_mesaj: .asciz "%s"
 newline: .asciz "\n"
+prefix: .asciz "0x"
 
 s: .space 1600
 saux: .space 1600
 
-mesaj: .space 11
+mesaj: .space 22
 mesaj_binar: .space 80
 lungime: .space 4
+len_cheie: .space 4
 
+hexa: .asciz "A", "B", "C", "D", "E", "F"
 
 .text
 
@@ -318,6 +322,110 @@ lungime: .space 4
 	evolutie_copy2_cont:
 	popl %ebp
 	ret
+	
+	
+	
+	cheie_lungire:
+	pushl %ebp
+	movl %esp, %ebp
+	
+	proc_scurta:
+lea s, %edi
+movl lungime, %eax
+subl len_cheie, %eax
+
+xorl %edx, %edx
+divl len_cheie
+
+//in %eax am cat, in %edx rest
+
+movl $0, i
+
+proc_scurta_loop:
+movl i, %ebx
+//eax -> cat   edx -> contor
+cmp %eax, %ebx
+jge proc_scurta_loop_exit
+
+xorl %ecx, %ecx
+	
+	
+	proc_marire:
+	cmp len_cheie, %ecx
+	jge proc_scurta_loop_cont
+	
+	//(%edi, %ecx, 4) -> (%edi, %ecx+len_cheie, 4)
+	movl %ecx, %ebx
+	addl len_cheie, %ebx
+	pushl %eax
+	
+	movl (%edi, %ecx, 4), %eax
+	movl %eax, (%edi, %ebx, 4)
+	
+	popl %eax
+	
+	incl %ecx
+	jmp proc_marire
+		
+proc_scurta_loop_cont:
+movl len_cheie, %ebx
+addl %ebx, len_cheie
+incl i
+jmp proc_scurta_loop
+proc_scurta_loop_exit:
+
+movl $0, i
+proc_scurta_loop2:
+movl i, %ebx
+cmp %edx, %ebx
+jge proc_scurta_loop2_exit
+
+//(%edi, %ecx, 4) -> (%edi, %ecx+len_cheie, 4)
+movl %ebx, %ecx
+addl len_cheie, %ecx
+
+movl (%edi, %ebx, 4), %eax
+movl %eax, (%edi, %ecx, 4)
+
+incl i
+jmp proc_scurta_loop2
+proc_scurta_loop2_exit:
+addl %ebx, len_cheie
+	
+	popl %ebp
+	ret
+	
+	
+	
+	proc_xorare:
+	
+	//--
+	pushl %ebp
+	movl %esp, %ebp
+	
+	xorl %edx, %edx
+	lea s, %edi
+	lea mesaj_binar, %esi
+	xorl %eax, %eax
+	xorl %edx, %edx
+	cript:
+	cmp lungime, %edx
+	jge cript_exit
+
+	//xor (%edi, %edx, 4), (%esi, %edx, 1)
+	movl (%edi, %edx, 4), %eax
+
+	movb (%esi, %edx, 1), %bl
+	xorl %eax, %ebx
+	movb %bl, (%esi, %edx, 1)
+
+
+	incl %edx
+	jmp cript
+	cript_exit:
+	popl %ebp
+	ret
+	//-
 
 
 .global main
@@ -349,7 +457,6 @@ popl %ebx
 
 //citim punctele p(x,y)
 movl $0, i
-lea s, %edx
 loop_citire_coordonate:
 mov i, %eax
 cmp p, %eax
@@ -384,7 +491,6 @@ jmp loop_citire_coordonate
 //---
 
 iesire_loop_citire_coordonate:
-
 //citim k
 pushl $k
 pushl $string_citire
@@ -399,10 +505,11 @@ call scanf
 popl %ebx
 popl %ebx
 
-
 //citim mesaj
 pushl $mesaj
-call gets
+pushl $string_mesaj
+call scanf
+popl %ebx
 popl %ebx
 
 
@@ -418,14 +525,6 @@ subl $1, k
 jmp generatii_loop
 
 generatii_loop_exit:
-call afisareMatrice
-
-xorb %al, %al
-cmp %al, mod
-jne decriptare
-
-criptare:
-//
 
 pushl $mesaj
 call strlen
@@ -433,6 +532,18 @@ popl %ebx
 
 movl %eax, lungime
 
+//(m+2)*(n+2) calculez lungime cheie
+movl m, %eax
+mull n
+popl %ebx
+movl %eax, len_cheie
+
+xorb %al, %al
+cmp %al, mod
+jne decriptare
+
+criptare:
+//
 movl $0, i
 xorl %eax, %eax
 xorl %ebx, %ebx
@@ -445,7 +556,7 @@ cmp lungime, %edx
 jge criptare_parcurgere_mesaj_exit
 
 movl $7, %ecx
-	criptare_gen_cheie:
+	criptare_gen_binar_mesaj:
 	cmp $0, %ecx
 	jl criptare_parcurgere_mesaj_cont
 	
@@ -458,7 +569,7 @@ movl $7, %ecx
 	and %al, %bl
 	
 	shr %ecx, %bl
-	test:
+
 	movl %edx, %eax
 	pushl %ebx
 	movl $8, %ebx
@@ -470,53 +581,287 @@ movl $7, %ecx
 	movb %bl, (%esi, %eax, 1) 
 	
 	decl %ecx
-	jmp criptare_gen_cheie 
+	jmp criptare_gen_binar_mesaj
 
 criptare_parcurgere_mesaj_cont:
 incl i
 jmp criptare_parcurgere_mesaj
 criptare_parcurgere_mesaj_exit:
 
+
+
+//veirfic daca lungimea mesajului are aceeasi lungime cu cheia
 movl $8, %eax
 mull lungime
-xorl %ecx, %ecx
-
-criptare_afisare_mesaj_binar:
-cmp %eax, %ecx
-jge criptare_afisare_mesaj_binar_exit
-
-movb (%esi, %ecx, 1), %bl
+movl %eax, lungime
 pushl %eax
-pushl %ecx
-pushl %edx
+//(m+2)*(n+2)
+movl m, %eax
+mull n
+popl %ebx
+movl %eax, len_cheie
+// ebx -> len mesaj   eax -> len cheie
 
-push %ebx
-pushl $string_citire
+cmp %ebx, %eax
+decizie:
+//jg daca mesajul e mai lung decat cheia
+jg lunga
+//jl daca mesajul e mai scurt decat cheia
+jl scurta
+jmp criptare
+
+lunga:
+//iau in considerare numai cate caractere din cheie ma intereseaza
+movl %eax, len_cheie
+
+jmp xorare
+scurta:
+call cheie_lungire
+
+jmp xorare
+
+xorare:
+//TODO
+
+
+call proc_xorare
+
+
+
+pushl $prefix
 call printf
 popl %ebx
-pop %ebx
 
 pushl $0
 call fflush
 popl %ebx
 
-popl %edx
-popl %ecx
-popl %eax
+movl lungime, %ebx
+shr $2, %ebx
+lea mesaj_binar, %esi
+movl $0, i
+cript_afisare:
+cmp %ebx, i
+jge cript_afisare_exit
 
-incl %ecx
-fin:
-jmp criptare_afisare_mesaj_binar
-criptare_afisare_mesaj_binar_exit:
+	movl $0, j
+	xorl %ecx, %ecx
+	grupare:
+	movl j, %eax
+	cmp $4, %eax
+	jge cript_afisare_cont
+	
+	shl $1, %cl
+	//i*4 + j
+	movl $4, %eax
+	mull i
+	addl j, %eax
+	
+	movb (%esi, %eax, 1), %dl
+	or %dl, %cl
+	
+	incl j
+	jmp grupare
+
+cript_afisare_cont:
+
+
+cmpb $10, %cl
+jge litere
+jmp cifre
+
+litere:
+subb $10, %cl
+xorl %eax, %eax
+lea hexa, %edi
+lea (%edi, %ecx, 2), %eax
+pushl %eax
+pushl $string_mesaj
+jmp cript_incl
+
+cifre:
+pushl %ecx
+pushl $string_citire
+
+cript_incl:
+call printf
+popl %ecx
+popl %ecx
+
+pushl $0
+call fflush
+popl %ecx
+
+incl i
+jmp cript_afisare
+cript_afisare_exit:
+
+
+
 jmp exit
 
 decriptare:
 //
 
+
+
+//incep de la 2 ca sa trec de 0x
+movl $2, i
+lea mesaj, %edi
+lea mesaj_binar, %esi
+decript_parcurgere_mesaj:
+movl i, %edx
+cmp lungime, %edx
+
+jge decript_parcurgere_mesaj_exit
+
+movl $3, %ecx
+xorl %ebx, %ebx
+xorl %eax, %eax
+movb (%edi, %edx, 1), %al
+cmp $57, %eax
+jle decript_cifra
+jmp decript_litera
+
+
+
+decript_cifra:
+//
+//scad 48 pt ca 0 in ascii e 48 si de acolo incep cifrele (ex. 1 in ascii e 49 => 49-48 = 1)
+subl $48, %eax
+jmp decript_gen_bin_mesaj
+
+decript_litera:
+//scad 55 pt ca A(10) in ascii e 65 si de acolo incep literele pana la F(15) (ex. 11 in hexa e B in ascii 66 => 66-55 = 11)
+subl $55, %eax
+jmp decript_gen_bin_mesaj
+
+
+//in eax am nr de transformat in binar
+
+
+	
+	decript_gen_bin_mesaj:
+
+	cmp $0, %ecx
+	jl decript_parcurgere_mesaj_cont
+	
+	movb $1, %bl
+	shl %ecx, %bl
+	and %al, %bl
+	shr %ecx, %bl
+	
+	//salvex eax
+	pushl %eax
+	
+	//i -> eax
+	movl i, %eax
+	//scad 2 pt ca incep indexarea de la 2 iar in vector vreau sa imi puna de la 0
+	subl $2, %eax
+	//pastrez bitul 
+	pushl %ebx
+	movl $4, %ebx
+	mull %ebx
+	popl %ebx
+	addl $3, %eax
+	subl %ecx, %eax
+	
+	movb %bl, (%esi, %eax, 1) 
+
+	popl %eax
+	decl %ecx
+	jmp decript_gen_bin_mesaj
+
+decript_parcurgere_mesaj_cont:
+
+incl i
+jmp decript_parcurgere_mesaj
+decript_parcurgere_mesaj_exit:
+
+//veirfic daca lungimea mesajului are aceeasi lungime cu cheia
+subl $2, lungime
+
+movl $4, %eax
+mull lungime
+movl %eax, lungime
+//eax -> len mesaj
+
+cmp %eax, len_cheie
+
+//jg daca mesajul e mai lung decat cheia
+jg dc_lunga
+//jl daca mesajul e mai scurt decat cheia
+jl dc_scurta
+jmp dc_xorare
+
+dc_lunga:
+//iau in considerare numai cate caractere din cheie ma intereseaza
+movl %eax, len_cheie
+jmp dc_xorare
+
+dc_scurta:
+call cheie_lungire
+
+
+dc_xorare:
+call proc_xorare
+
+//
+
+movl lungime, %ebx
+shr $3, %ebx
+lea mesaj_binar, %esi
+movl $0, i
+
+dcript_afisare:
+cmp %ebx, i
+jge dcript_afisare_exit
+
+	movl $0, j
+	xorl %ecx, %ecx
+	dc_grupare:
+	movl j, %eax
+	cmp $8, %eax
+	jge dcript_afisare_cont
+	
+	shl $1, %cl
+	//i*8 + j
+	movl $8, %eax
+	mull i
+	addl j, %eax
+	
+	movb (%esi, %eax, 1), %dl
+	or %dl, %cl
+	test:
+	
+	incl j
+	jmp dc_grupare
+
+dcript_afisare_cont:
+test2:
+movl %ecx, j
+pushl $j
+pushl $string_mesaj
+call printf
+popl %ecx
+popl %ecx
+
+pushl $0
+call printf
+popl %ecx
+
+
+incl i
+jmp dcript_afisare
+dcript_afisare_exit:
+
 jmp exit
 
 exit:
-mov $1, %eax
+pushl $0
+call fflush
+popl %ebx
+
+movl $1, %eax
 xorl %ebx, %ebx
 int $0x80
-
